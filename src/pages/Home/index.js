@@ -16,38 +16,101 @@ import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
 import Alert from '@mui/material/Alert';
+import Divider from '@mui/material/Divider';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import NotesIcon from '@mui/icons-material/Notes';
+import ListItemText from '@mui/material/ListItemText';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import ForwardIcon from '@mui/icons-material/Forward';
 
 export default function Home() {
-    const [userField, setUserField] = useState('Nadyan');
-    const [user, setUser] = useState('Nadyan');
+    const [userField, setUserField] = useState('');
+    const [user, setUser] = useState('');
     const [data, setData] = useState([]);
+    const [branches, setBranches] = useState([]);
+    const [commits, setCommits] = useState([]);
     const [expanded, setExpanded] = useState(false);
 
     useEffect(() => {
-        const path = `users/${user}/repos`;
-        api.get(path).then(response => {
-            setData(response.data);
-        });
+        if (user !== '') {
+            const path = `users/${user}/repos`;
+            api.get(path).then(response => {
+                setData(response.data);
+            });
+        }
     }, [user]);
 
-    const handleExpand = (panel) => (event, isExpanded) => {
+    const handleExpand = (panel, branches_url, commits_url) => (event, isExpanded) => {
+        if (isExpanded) {
+            const pathBranches = branches_url.split("{")[0];
+            const pathCommits = commits_url.split("{")[0];
+            api.get(pathBranches).then(response => {
+                setBranches(response.data);
+            });
+            api.get(pathCommits).then(response => {
+                setCommits(response.data);
+            });
+        } else {
+            setBranches([]);
+            setCommits([]);
+        }
         setExpanded(isExpanded ? panel : false);
     };
 
     const getRepos = () => (
         data.map(repo => (
-            <Accordion expanded={expanded === repo.id} 
-                onChange={handleExpand(repo.id)} TransitionProps={{ unmountOnExit: true }}>
+            <Accordion expanded={expanded === repo.id}
+                onChange={handleExpand(repo.id, repo.branches_url, repo.commits_url)} TransitionProps={{ unmountOnExit: true }}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />} 
                     aria-controls={`${repo.id}bh-content`} id={`${repo.id}bh-header`}
                 >
                     <Chip label={repo.name} />
                     <Grid container justifyContent={"flex-end"} sx={{ mr:1 }}>
                         <Typography sx={{flexShrink: 0 }} variant="a">
-                            {repo.description}
+                            {repo.id}
                         </Typography>
                     </Grid>
                 </AccordionSummary>
+                
+                <AccordionDetails>
+                    <List>
+                        <Divider><Chip label="Description" variant="outlined"/></Divider>
+                        <ListItem disablePadding key={repo.id}>
+                            <ListItemIcon>
+                                <NotesIcon />
+                            </ListItemIcon>
+                            <ListItemText 
+                                primary={`${repo.description}`} />
+                        </ListItem>
+                        <Divider><Chip label="Branches" variant="outlined"/></Divider>
+                        {
+                            branches.map(branch => (
+                                <ListItem disablePadding key={branch.id}>
+                                <ListItemIcon>
+                                    <AccountTreeIcon />
+                                </ListItemIcon>
+                                <ListItemText 
+                                    primary={`${branch.name}`} />
+                                </ListItem>
+                            ))
+                        }
+                        <Divider><Chip label="Commits" variant="outlined"/></Divider>
+                        {
+                            commits.map(commit => (
+                                <ListItem disablePadding key={commit.commit.node_id}>
+                                <ListItemIcon>
+                                    <ForwardIcon />
+                                </ListItemIcon>
+                                <ListItemText 
+                                    primary={`${commit.commit.message}`} />
+                                </ListItem>
+                            ))
+                        }
+                    </List>
+                </AccordionDetails>
+
             </Accordion>
         ))
     );
