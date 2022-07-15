@@ -1,0 +1,5 @@
+Instalar as dependências:
+    - npm install
+
+Iniciar a aplicação:
+    - npm start
